@@ -16,7 +16,7 @@ type PintpointPlugin = Plugin<{
         uploadSeconds: string
         uploadMegabytes: string
         eventsToIgnore: string
-        maxAttempts: number
+        maxAttempts: string
     }
     jobs: {}
 }>
@@ -57,6 +57,7 @@ export const setupPlugin: PintpointPlugin['setupPlugin'] = (meta) => {
 
     const uploadMegabytes = Math.max(1, Math.min(parseInt(config.uploadMegabytes) || 1, 100))
     const uploadSeconds = Math.max(1, Math.min(parseInt(config.uploadSeconds) || 1, 60))
+    const maxAttempts = parseInt(config.maxAttempts)
     global.pinpoint = new PinpointClient({
         credentials: {
             accessKeyId: config.awsAccessKey,
@@ -65,7 +66,7 @@ export const setupPlugin: PintpointPlugin['setupPlugin'] = (meta) => {
         region: config.awsRegion,
         
         retryMode: 'standard',
-        maxAttempts: config.maxAttempts || 3,
+        maxAttempts: maxAttempts || 3,
     })
 
     global.buffer = createBuffer({

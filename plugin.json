@@ -63,7 +63,7 @@
         {
             "key": "maxAttempts",
             "name": "Number of attempts to send to AWS Pinpoint",
-            "type": "number",
+            "type": "string",
             "default": "3"
         }
     ]
