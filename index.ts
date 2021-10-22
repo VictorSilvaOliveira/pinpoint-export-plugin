@@ -1,10 +1,11 @@
 import { createBuffer } from '@posthog/plugin-contrib'
-import { Event, EventsBatch, PinpointClient, PutEventsCommand } from '@aws-sdk/client-pinpoint'
+import { Pinpoint } from 'aws-sdk'
 import { Plugin, PluginMeta, PluginEvent } from '@posthog/plugin-scaffold'
+import { Event, PublicEndpoint, EventsBatch, PutEventsResponse } from 'aws-sdk/clients/pinpoint'
 
 type PintpointPlugin = Plugin<{
     global: {
-        pinpoint: PinpointClient
+        pinpoint: Pinpoint
         buffer: ReturnType<typeof createBuffer>
         eventsToIgnore: Set<string>
     }
@@ -58,15 +59,12 @@ export const setupPlugin: PintpointPlugin['setupPlugin'] = (meta) => {
     const uploadMegabytes = Math.max(1, Math.min(parseInt(config.uploadMegabytes) || 1, 100))
     const uploadSeconds = Math.max(1, Math.min(parseInt(config.uploadSeconds) || 1, 60))
     const maxAttempts = parseInt(config.maxAttempts)
-    global.pinpoint = new PinpointClient({
+    global.pinpoint = new Pinpoint({
         credentials: {
             accessKeyId: config.awsAccessKey,
             secretAccessKey: config.awsSecretAccessKey,
         },
         region: config.awsRegion,
-        
-        retryMode: 'standard',
-        maxAttempts: maxAttempts || 3,
     })
 
     global.buffer = createBuffer({
@@ -101,26 +99,45 @@ export const onSnapshot: PintpointPlugin['onSnapshot'] = async (event, { global 
     }
 }
 
-async function sendToPinpoint(events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) {
+export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
     let { config, global } = meta
-    const command = new PutEventsCommand({
+
+    const command = {
         ApplicationId: config.applicationId,
         EventsRequest: {
             BatchItem: events.reduce((batchEvents: { [key: string]: EventsBatch }, e) => {
                 let batchKey = e.properties?.$device_id || Math.floor(Math.random() * 1000000).toString()
                 batchEvents[batchKey] = {
-                    Endpoint: fillEndpoint(e),
-                    Events: { ...fillEvents([e]), ...batchEvents[batchKey].Events },
+                    Endpoint: getEndpoint(e),
+                    Events: { ...getEvents([e]), ...batchEvents[batchKey].Events },
                 }
                 return batchEvents
             }, {}),
         },
-    })
+    }
 
-    await global.pinpoint.send(command)
+    global.pinpoint.putEvents(command, async (err: Error, _: PutEventsResponse) => {
+        if (err) {
+            console.error(`Error sending events to Pinpoint: ${err.message}`)
+            // if (payload.retriesPerformedSoFar >= 15) {
+            //     return
+            // }
+            // const nextRetryMs = 2 ** payload.retriesPerformedSoFar * 3000
+            // console.log(`Enqueued batch ${payload.batchId} for retry in ${nextRetryMs}ms`)
+            // await jobs
+            //     .uploadBatchToS3({
+            //         ...payload,
+            //         retriesPerformedSoFar: payload.retriesPerformedSoFar + 1,
+            //     })
+            //     .runIn(nextRetryMs, 'milliseconds')
+        }
+        console.log(
+            `Uploaded ${events.length} event${events.length === 1 ? '' : 's'} to application ${config.applicationId}`
+        )
+    })
 }
 
-function fillEndpoint(event: PluginEvent) {
+export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
     let endpoint = {}
     if (event.properties?.$device_id) {
         endpoint = {
@@ -162,7 +179,7 @@ function fillEndpoint(event: PluginEvent) {
     return endpoint
 }
 
-function fillEvents(events: PluginEvent[]): { [key: string]: Event } {
+export const getEvents = (events: PluginEvent[]): { [key: string]: Event } => {
     return events.reduce((pinpointEvents, event) => {
         pinpointEvents = {
             [event.distinct_id]: {
