@@ -15,7 +15,7 @@ type PintpointPlugin = Plugin<{
         applicationId: string
         uploadSeconds: string
         uploadMegabytes: string
-        eventsToIgnore: string,
+        eventsToIgnore: string
         maxAttempts: number
     }
     jobs: {}
@@ -63,9 +63,10 @@ export const setupPlugin: PintpointPlugin['setupPlugin'] = (meta) => {
             secretAccessKey: config.awsSecretAccessKey,
         },
         region: config.awsRegion,
+        
         retryMode: 'standard',
-        maxAttempts: config.maxAttempts  || 3,
-    }) 
+        maxAttempts: config.maxAttempts || 3,
+    })
 
     global.buffer = createBuffer({
         limit: uploadMegabytes * 1024 * 1024,
@@ -99,7 +100,7 @@ export const onSnapshot: PintpointPlugin['onSnapshot'] = async (event, { global 
     }
 }
 
-function sendToPinpoint(events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) {
+async function sendToPinpoint(events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) {
     let { config, global } = meta
     const command = new PutEventsCommand({
         ApplicationId: config.applicationId,
@@ -115,7 +116,7 @@ function sendToPinpoint(events: PluginEvent[], meta: PluginMeta<PintpointPlugin>
         },
     })
 
-    global.pinpoint.send(command)
+    await global.pinpoint.send(command)
 }
 
 function fillEndpoint(event: PluginEvent) {
