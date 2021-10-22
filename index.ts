@@ -1,5 +1,5 @@
 import { createBuffer } from '@posthog/plugin-contrib'
-import { Pinpoint } from 'aws-sdk'
+import { config, Pinpoint } from 'aws-sdk'
 import { Plugin, PluginMeta, PluginEvent } from '@posthog/plugin-scaffold'
 import { Event, PublicEndpoint, EventsBatch, PutEventsResponse } from 'aws-sdk/clients/pinpoint'
 
@@ -86,8 +86,10 @@ export const teardownPlugin: PintpointPlugin['teardownPlugin'] = ({ global }) =>
 
 export const onEvent: PintpointPlugin['onEvent'] = (event, meta) => {
     let { global } = meta
+    console.log('Event')
     if (!global.eventsToIgnore.has(event.event)) {
         global.buffer.add(event)
+        console.log('Event Added')
     }
 }
 
