@@ -15,15 +15,14 @@ Export events to Amazon Pinpoint on ingestion. Archive your data, or simply free
 ## Obtaining AWS Credentials
 
 1. Log in to [AWS](https://console.aws.amazon.com/).
-1. Open [S3](https://s3.console.aws.amazon.com/) in the AWS console and create a new bucket in your chosen region.
+1. Open [Pinpoint](https://console.aws.amazon.com/pinpoint/) in the AWS console and create a project to send events.
 1. Open [IAM](https://console.aws.amazon.com/iam/home) and create a new policy to allow access to this bucket.
     1. Open "Policies" and click "Create policy"
-    1. On the "Visual Editor" tab, click "Choose a service" and select "S3"
+    1. On the "Visual Editor" tab, click "Choose a service" and select "Pinpoint"
     1. Under "Actions" select
-        1. "Write" -> "PutObject"
-        1. "Permission Management" -> "PutObjectAcl" 
+        1. "Write" -> "PutEvents"
     1. Under "Resources" select "Specific" and click "object" -> "Add ARN"
-    1. Specify your bucket name and choose "any" for the object name, so the ARN looks something like this: `arn:aws:s3:::my-bucket-name/*`
+    1. Specify your bucket name and choose "any" for the object name, so the ARN looks something like this: `arn:aws:mobiletargeting:{Region}:{AccountId}:apps/{AppId}`
     1. Click "Next" until you end up on the "Review Policy" page
     1. Give it a name
 1. Open [IAM](https://console.aws.amazon.com/iam/home) and create a new user who uses this policy
