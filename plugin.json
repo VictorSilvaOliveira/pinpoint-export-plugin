@@ -1,12 +1,12 @@
 {
     "name": "Pintpoint Plugin",
-    "url": "https://github.com/PostHog/pinpoint-plugin",
+    "url": "https://github.com/VictorSilvaOliveira/pinpoint-export-plugin",
     "description": "Export PostHog events to Amazon Pinpoint on ingestion.",
     "main": "index.ts",
     "posthogVersion": ">= 1.25.0",
     "config": [
         {
-            "markdown": "Read [the documentation](https://github.com/PostHog/pinpoint-plugin) here for instructions in getting these keys."
+            "markdown": "Read [the documentation](https://github.com/VictorSilvaOliveira/pinpoint-export-plugin) here for instructions in getting these keys."
         },
         {
             "key": "awsAccessKey",

@@ -33,7 +33,7 @@ Export events to Amazon Pinpoint on ingestion. Archive your data, or simply free
     1. Select the policy you had just created
     1. Click "Next" until you reach the "Create user" button. Click that as well.
     1. Make sure to copy your "Access key" and "Secret access key". The latter will not be shown again.
-1. Install the plugin in PostHog and fill in the "Access key", "Secret access key", "Bucket region" and "Bucket name" fields. Adjust other parameters as needed.
+1. Install the plugin in PostHog and fill in the "Access key", "Secret access key", "Pinpoint region" and "Application Id" fields. Adjust other parameters as needed.
 
 ## Memory Usage
 
