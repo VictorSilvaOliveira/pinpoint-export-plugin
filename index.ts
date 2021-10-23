@@ -1,6 +1,6 @@
 import { createBuffer } from '@posthog/plugin-contrib'
 import { config, Pinpoint } from 'aws-sdk'
-import { Plugin, PluginMeta, PluginEvent } from '@posthog/plugin-scaffold'
+import { Plugin, PluginMeta, PluginEvent, Properties } from '@posthog/plugin-scaffold'
 import { Event, PublicEndpoint, EventsBatch, PutEventsResponse } from 'aws-sdk/clients/pinpoint'
 import { randomUUID } from 'crypto'
 
@@ -126,10 +126,9 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
             }, {}),
         },
     }
-    console.info(`Sending ${JSON.stringify(command)}`)
-    global.pinpoint.putEvents(command, (err: Error, _: PutEventsResponse) => {
+    global.pinpoint.putEvents(command, (err: Error, data: PutEventsResponse) => {
         if (err) {
-            console.error(`Error sending events to Pinpoint: ${err.message}`)
+            console.error(`Error sending events to Pinpoint: ${err.message}:${JSON.stringify(command)}`)
             // if (payload.retriesPerformedSoFar >= 15) {
             //     return
             // }
@@ -145,6 +144,7 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
         console.info(
             `Uploaded ${events.length} event${events.length === 1 ? '' : 's'} to application ${config.applicationId}`
         )
+        console.info(`Response: ${JSON.stringify(data)}`)
     })
 }
 
@@ -168,7 +168,8 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
                 Make: event.properties?.$device_manufacturer || event.properties?.$device_type,
                 Model: event.properties?.$device_model || event.properties?.$os,
                 Platform: event.properties?.$os_name || event.properties?.$browser,
-                PlatformVersion: event.properties?.$os_version || event.properties?.$browser_version,
+                PlatformVersion:
+                    event.properties?.$os_version.toString() || event.properties?.$browser_version.toString(),
                 Timezone: event.properties?.$geoip_time_zone,
             },
             EffectiveDate: event.timestamp,
@@ -193,31 +194,47 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
 export const getEvents = (events: PluginEvent[]): { [key: string]: Event } => {
     return events.reduce((pinpointEvents, event) => {
         console.info(`Event ${JSON.stringify(event)}`)
+        let eventKey = event.uuid ?? randomUUID()
+        let pinpointEvent = {
+            AppPackageName: 'string;',
+            AppTitle: 'string;',
+            AppVersionCode: 'string;',
+            Attributes: Object.keys(event.properties ?? {}).reduce((attributes, key) => {
+                attributes = {
+                    [key]: getAttribute(event, key),
+                    ...attributes,
+                }
+                return attributes
+            }, {}),
+            ClientSdkVersion: event.properties?.$lib_version,
+            EventType: event.event,
+            Metrics: {},
+            SdkName: event.properties?.$lib,
+            Timestamp: event.timestamp || new Date().getTime().toString(),
+            Session: {},
+            // Session: {
+            //     Duration: 0,
+            //     Id: 'string',
+            //     StartTimestamp: 'string',
+            //     StopTimestamp: ' string',
+            // },
+        }
+        if (event.properties?.$session_id) {
+            pinpointEvent.Session = { Id: event.properties?.$session_id }
+        }
         pinpointEvents = {
-            [randomUUID()]: {
-                AppPackageName: 'string;',
-                AppTitle: 'string;',
-                AppVersionCode: 'string;',
-                Attributes: Object.keys(event.properties ?? {}).reduce((attributes, key) => {
-                    attributes = {
-                        [key]: JSON.stringify((event.properties ?? {})[key]),
-                        ...attributes,
-                    }
-                    return attributes
-                }, {}),
-                ClientSdkVersion: event.properties?.$lib_version,
-                EventType: event.event,
-                Metrics: {},
-                SdkName: event.properties?.$lib,
-                Timestamp: event.timestamp || new Date().getTime().toString(),
-                // Session: {
-                //     Duration: 0,
-                //     Id: 'string',
-                //     StartTimestamp: 'string',
-                //     StopTimestamp: ' string',
-                // },
-            },
+            [eventKey]: pinpointEvent,
         }
         return pinpointEvents
     }, {})
+}
+
+export const getAttribute = (properties: Properties, key: string): string => {
+    let value = (properties ?? {})[key]
+    if (typeof value === 'number' || typeof value === 'boolean') {
+        value = value.toString()
+    } else if (typeof value !== 'string') {
+        value = JSON.stringify(value)
+    }
+    return value
 }
