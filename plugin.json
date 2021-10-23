@@ -46,11 +46,11 @@
             "required": true
         },
         {
-            "key": "uploadMegabytes",
-            "name": "Maximum upload size in megabytes",
+            "key": "uploadKilobytes",
+            "name": "Maximum upload size in kilobites",
             "type": "string",
             "default": "1",
-            "hint": "Always keep the uploaded files below this size limit, uploading more frequently than the time limit if needed. Events are kept in memory until then, so make sure your server has enough of it. The value must be between 1 and 100 MB.",
+            "hint": "Always keep the uploaded files below this size limit, uploading more frequently than the time limit if needed. Events are kept in memory until then, so make sure your server has enough of it. The value must be between 1 and 100 KB.",
             "required": true
         },
         {

@@ -15,7 +15,7 @@ type PintpointPlugin = Plugin<{
         awsRegion: string
         applicationId: string
         uploadSeconds: string
-        uploadMegabytes: string
+        uploadKilobytes: string
         eventsToIgnore: string
         maxAttempts: string
     }
@@ -56,7 +56,7 @@ export const setupPlugin: PintpointPlugin['setupPlugin'] = (meta) => {
         throw new Error('ApplicationId missing!')
     }
 
-    const uploadMegabytes = Math.max(1, Math.min(parseInt(config.uploadMegabytes) || 1, 100))
+    const uploadKilobytes = Math.max(1, Math.min(parseInt(config.uploadKilobytes) || 1, 100))
     const uploadSeconds = Math.max(1, Math.min(parseInt(config.uploadSeconds) || 1, 60))
     const maxAttempts = parseInt(config.maxAttempts)
     global.pinpoint = new Pinpoint({
@@ -68,9 +68,10 @@ export const setupPlugin: PintpointPlugin['setupPlugin'] = (meta) => {
     })
 
     global.buffer = createBuffer({
-        limit: uploadMegabytes * 1024 * 1024,
+        limit: uploadKilobytes * 1024 * 1024,
         timeoutSeconds: uploadSeconds,
         onFlush: async (events) => {
+            console.info('Buffer flushed')
             sendToPinpoint(events, meta)
         },
     })
@@ -86,17 +87,17 @@ export const teardownPlugin: PintpointPlugin['teardownPlugin'] = ({ global }) =>
 
 export const onEvent: PintpointPlugin['onEvent'] = (event, meta) => {
     let { global } = meta
-    console.log('Event')
     if (!global.eventsToIgnore.has(event.event)) {
         global.buffer.add(event)
-        console.log('Event Added')
     }
 }
 
-export const onSnapshot: PintpointPlugin['onSnapshot'] = async (event, { global }) => {
+export const onSnapshot: PintpointPlugin['onSnapshot'] = async (event, meta) => {
+    let { global } = meta
     if (!global.eventsToIgnore.has(event.event)) {
         if (!global.eventsToIgnore.has(event.event)) {
-            global.buffer.add(event)
+            //global.buffer.add(event)
+            sendToPinpoint([event], meta)
         }
     }
 }
@@ -133,7 +134,7 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
             //     })
             //     .runIn(nextRetryMs, 'milliseconds')
         }
-        console.log(
+        console.info(
             `Uploaded ${events.length} event${events.length === 1 ? '' : 's'} to application ${config.applicationId}`
         )
     })
