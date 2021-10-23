@@ -107,15 +107,19 @@ export const onSnapshot: PintpointPlugin['onSnapshot'] = async (event, meta) => 
 
 export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
     let { config, global } = meta
-
     const command = {
         ApplicationId: config.applicationId,
         EventsRequest: {
             BatchItem: events.reduce((batchEvents: { [key: string]: EventsBatch }, e) => {
                 let batchKey = e.properties?.$device_id || Math.floor(Math.random() * 1000000).toString()
+                let pinpointEvents = getEvents([e])
+                let pinpointEndpoint = getEndpoint(e)
+                if (batchEvents[batchKey]) {
+                    pinpointEvents = { ...pinpointEvents, ...batchEvents[batchKey].Events }
+                }
                 batchEvents[batchKey] = {
-                    Endpoint: getEndpoint(e),
-                    Events: { ...getEvents([e]), ...batchEvents[batchKey].Events },
+                    Endpoint: pinpointEndpoint,
+                    Events: pinpointEvents,
                 }
                 return batchEvents
             }, {}),
