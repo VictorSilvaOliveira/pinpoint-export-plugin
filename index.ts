@@ -1,7 +1,13 @@
 import { createBuffer } from '@posthog/plugin-contrib'
 import { config, Pinpoint } from 'aws-sdk'
 import { Plugin, PluginMeta, PluginEvent, Properties } from '@posthog/plugin-scaffold'
-import { Event, PublicEndpoint, EventsBatch, PutEventsResponse } from 'aws-sdk/clients/pinpoint'
+import {
+    Event,
+    PublicEndpoint,
+    EventsBatch,
+    PutEventsResponse,
+    UpdateEndpointsBatchResponse,
+} from 'aws-sdk/clients/pinpoint'
 import { randomUUID } from 'crypto'
 
 type PintpointPlugin = Plugin<{
@@ -92,7 +98,7 @@ export const onEvent: PintpointPlugin['onEvent'] = (event, meta) => {
     let { global } = meta
     if (!global.eventsToIgnore.has(event.event)) {
         //global.buffer.add(event)
-        sendToPinpoint([event], meta)
+        updateEndpoints([event], meta)
     }
 }
 
@@ -101,7 +107,7 @@ export const onSnapshot: PintpointPlugin['onSnapshot'] = async (event, meta) => 
     if (!global.eventsToIgnore.has(event.event)) {
         if (!global.eventsToIgnore.has(event.event)) {
             //global.buffer.add(event)
-            sendToPinpoint([event], meta)
+            updateEndpoints([event], meta)
         }
     }
 }
@@ -126,6 +132,7 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
             }, {}),
         },
     }
+
     global.pinpoint.putEvents(command, (err: Error, data: PutEventsResponse) => {
         if (err) {
             console.error(`Error sending events to Pinpoint: ${err.message}:${JSON.stringify(command)}`)
@@ -148,6 +155,38 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
     })
 }
 
+export const updateEndpoints = async (events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
+    let { config, global } = meta
+    let endpoints = {
+        ApplicationId: config.applicationId,
+        EndpointBatchRequest: {
+            Item: events.map((e) => getEndpoint(e)),
+        },
+    }
+
+    global.pinpoint.updateEndpointsBatch(endpoints, (err: Error, data: UpdateEndpointsBatchResponse) => {
+        if (err) {
+            console.error(`Error sending endpoints to Pinpoint: ${err.message}:${JSON.stringify(command)}`)
+            // if (payload.retriesPerformedSoFar >= 15) {
+            //     return
+            // }
+            // const nextRetryMs = 2 ** payload.retriesPerformedSoFar * 3000
+            // console.log(`Enqueued batch ${payload.batchId} for retry in ${nextRetryMs}ms`)
+            // await jobs
+            //     .uploadBatchToS3({
+            //         ...payload,
+            //         retriesPerformedSoFar: payload.retriesPerformedSoFar + 1,
+            //     })
+            //     .runIn(nextRetryMs, 'milliseconds')
+        }
+        console.info(
+            `Uploaded ${events.length} endpoint${events.length === 1 ? '' : 's'} to application ${config.applicationId}`
+        )
+        console.info(`Response: ${JSON.stringify(data)}`)
+        sendToPinpoint(events, meta)
+    })
+}
+
 export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
     let endpoint = {}
     if (event.properties?.$device_id) {
@@ -161,7 +200,7 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
                 viewport_height: [event.properties?.$viewport_height?.toString() || ''],
                 viewport_width: [event.properties?.$viewport_width?.toString() || ''],
             },
-            ChannelType: event.properties?.$lib,
+            ChannelType: 'APNS',
             Demographic: {
                 AppVersion: event.properties?.$app_version,
                 Locale: event.properties?.$locale,
@@ -172,6 +211,8 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
                     event.properties?.$os_version?.toString() || event.properties?.$browser_version?.toString(),
                 Timezone: event.properties?.$geoip_time_zone,
             },
+            EndpointStatus: 'ACTIVE',
+            OptOut: 'NONE',
             EffectiveDate: event.timestamp,
             Location: {
                 City: event.properties?.$geoip_city_name,
