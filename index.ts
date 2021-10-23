@@ -97,8 +97,10 @@ export const teardownPlugin: PintpointPlugin['teardownPlugin'] = ({ global }) =>
 export const onEvent: PintpointPlugin['onEvent'] = (event, meta) => {
     let { global } = meta
     if (!global.eventsToIgnore.has(event.event)) {
+        console.log('Event')
         //global.buffer.add(event)
-        updateEndpoints([event], meta)
+        if (event.event === '$identify' && event.properties?.$device_id) updateEndpoints([event], meta)
+        else sendToPinpoint([event], meta)
     }
 }
 
@@ -106,54 +108,43 @@ export const onSnapshot: PintpointPlugin['onSnapshot'] = async (event, meta) => 
     let { global } = meta
     if (!global.eventsToIgnore.has(event.event)) {
         if (!global.eventsToIgnore.has(event.event)) {
-            //global.buffer.add(event)
-            updateEndpoints([event], meta)
+            console.log('Snapshot')
+            if (event.event === '$identify' && event.properties?.$device_id) updateEndpoints([event], meta)
+            else sendToPinpoint([event], meta)
         }
     }
 }
 
-export const updateEndpoints = async (events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
+export const updateEndpoints = async (event: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
+    console.log('Endpoint')
     let { config, global } = meta
     let endpoints = {
         ApplicationId: config.applicationId,
         EndpointBatchRequest: {
-            Item: events.filter((e) => e.properties?.$device_id).map((e) => getEndpoint(e)),
+            Item: event.map((event) => getEndpoint(event)),
         },
     }
     if (endpoints.EndpointBatchRequest.Item.length > 0) {
-        console.info("Update endpoint")
+        console.info('Update endpoint')
         global.pinpoint.updateEndpointsBatch(endpoints, (err: Error, data: UpdateEndpointsBatchResponse) => {
             if (err) {
                 console.error(`Error sending endpoints to Pinpoint: ${err.message}:${JSON.stringify(endpoints)}`)
-                // if (payload.retriesPerformedSoFar >= 15) {
-                //     return
-                // }
-                // const nextRetryMs = 2 ** payload.retriesPerformedSoFar * 3000
-                // console.log(`Enqueued batch ${payload.batchId} for retry in ${nextRetryMs}ms`)
-                // await jobs
-                //     .uploadBatchToS3({
-                //         ...payload,
-                //         retriesPerformedSoFar: payload.retriesPerformedSoFar + 1,
-                //     })
-                //     .runIn(nextRetryMs, 'milliseconds')
+            } else {
+                console.info(`Uploaded endpoint to application ${config.applicationId}`)
+                console.info(`Response: ${JSON.stringify(data)}`)
             }
-            console.info(
-                `Uploaded ${events.length} endpoint${events.length === 1 ? '' : 's'} to application ${
-                    config.applicationId
-                }`
-            )
-            console.info(`Response: ${JSON.stringify(data)}`)
         })
     }
 }
 
 export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
+    console.log('Event')
     let { config, global } = meta
     const command = {
         ApplicationId: config.applicationId,
         EventsRequest: {
             BatchItem: events.reduce((batchEvents: { [key: string]: EventsBatch }, e) => {
-                let batchKey = e.properties?.$device_id || Math.floor(Math.random() * 1000000).toString()
+                let batchKey = e.properties?.$device_id || randomUUID()
                 let pinpointEvents = getEvents([e])
                 let pinpointEndpoint = getEndpoint(e)
                 if (batchEvents[batchKey]) {
@@ -171,22 +162,14 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
     global.pinpoint.putEvents(command, (err: Error, data: PutEventsResponse) => {
         if (err) {
             console.error(`Error sending events to Pinpoint: ${err.message}:${JSON.stringify(command)}`)
-            // if (payload.retriesPerformedSoFar >= 15) {
-            //     return
-            // }
-            // const nextRetryMs = 2 ** payload.retriesPerformedSoFar * 3000
-            // console.log(`Enqueued batch ${payload.batchId} for retry in ${nextRetryMs}ms`)
-            // await jobs
-            //     .uploadBatchToS3({
-            //         ...payload,
-            //         retriesPerformedSoFar: payload.retriesPerformedSoFar + 1,
-            //     })
-            //     .runIn(nextRetryMs, 'milliseconds')
+        } else {
+            console.info(
+                `Uploaded ${events.length} event${events.length === 1 ? '' : 's'} to application ${
+                    config.applicationId
+                }`
+            )
+            console.info(`Response: ${JSON.stringify(data)}`)
         }
-        console.info(
-            `Uploaded ${events.length} event${events.length === 1 ? '' : 's'} to application ${config.applicationId}`
-        )
-        console.info(`Response: ${JSON.stringify(data)}`)
     })
 }
 
@@ -211,8 +194,7 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
                 Model: event.properties?.$device_model || event.properties?.$os,
                 Platform: event.properties?.$os_name || event.properties?.$browser,
                 PlatformVersion:
-                    event.properties?.$os_version?.toString() || 
-                    event.properties?.$browser_version?.toString(),
+                    event.properties?.$os_version?.toString() || event.properties?.$browser_version?.toString(),
                 Timezone: event.properties?.$geoip_time_zone,
             },
             EndpointStatus: 'ACTIVE',
