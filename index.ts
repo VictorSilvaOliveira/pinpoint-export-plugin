@@ -214,7 +214,7 @@ export const getEvents = (events: PluginEvent[]): { [key: string]: Event } => {
                     viewport_width: event.properties?.$viewport_width,
                 },
                 SdkName: event.properties?.$lib,
-                Timestamp: event.timestamp,
+                Timestamp: event.timestamp || (new Date()).getTime().toString(),
                 // Session: {
                 //     Duration: 0,
                 //     Id: 'string',
