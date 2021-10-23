@@ -125,7 +125,7 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
             }, {}),
         },
     }
-    console.info(`Sending ${command}`)
+    console.info(`Sending ${JSON.stringify(command)}`)
     global.pinpoint.putEvents(command, (err: Error, _: PutEventsResponse) => {
         if (err) {
             console.error(`Error sending events to Pinpoint: ${err.message}`)
@@ -205,16 +205,9 @@ export const getEvents = (events: PluginEvent[]): { [key: string]: Event } => {
                 }, {}),
                 ClientSdkVersion: event.properties?.$lib_version,
                 EventType: event.event,
-                Metrics: {
-                    screen_density: event.properties?.$screen_density,
-                    screen_height: event.properties?.$screen_height,
-                    screen_name: event.properties?.$screen_name,
-                    screen_width: event.properties?.$screen_width,
-                    viewport_height: event.properties?.$viewport_height,
-                    viewport_width: event.properties?.$viewport_width,
-                },
+                Metrics: {},
                 SdkName: event.properties?.$lib,
-                Timestamp: event.timestamp || (new Date()).getTime().toString(),
+                Timestamp: event.timestamp || new Date().getTime().toString(),
                 // Session: {
                 //     Duration: 0,
                 //     Id: 'string',

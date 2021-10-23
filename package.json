@@ -1,7 +1,7 @@
 {
     "name": "@posthog/pintpoint-export-plugin",
     "private": true,
-    "version": "0.0.5",
+    "version": "0.0.6",
     "description": "Export PostHog events to Amazon Pinpoint on ingestion.",
     "devDependencies": {
         "@posthog/plugin-contrib": "^0.0.3",
