@@ -119,7 +119,7 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
         },
     }
 
-    global.pinpoint.putEvents(command, async (err: Error, _: PutEventsResponse) => {
+    global.pinpoint.putEvents(command,  (err: Error, _: PutEventsResponse) => {
         if (err) {
             console.error(`Error sending events to Pinpoint: ${err.message}`)
             // if (payload.retriesPerformedSoFar >= 15) {
