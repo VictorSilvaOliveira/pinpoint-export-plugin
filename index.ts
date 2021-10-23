@@ -71,8 +71,10 @@ export const setupPlugin: PintpointPlugin['setupPlugin'] = (meta) => {
         limit: uploadKilobytes * 1024 * 1024,
         timeoutSeconds: uploadSeconds,
         onFlush: async (events) => {
-            console.info('Buffer flushed')
-            sendToPinpoint(events, meta)
+            console.info(`Buffer flushed :${events}`)
+            if (events?.length) {
+                sendToPinpoint(events, meta)
+            }
         },
     })
 
@@ -88,7 +90,8 @@ export const teardownPlugin: PintpointPlugin['teardownPlugin'] = ({ global }) =>
 export const onEvent: PintpointPlugin['onEvent'] = (event, meta) => {
     let { global } = meta
     if (!global.eventsToIgnore.has(event.event)) {
-        global.buffer.add(event)
+        //global.buffer.add(event)
+        sendToPinpoint([event], meta)
     }
 }
 
@@ -118,8 +121,8 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
             }, {}),
         },
     }
-
-    global.pinpoint.putEvents(command,  (err: Error, _: PutEventsResponse) => {
+    console.info(`Sending ${command}`)
+    global.pinpoint.putEvents(command, (err: Error, _: PutEventsResponse) => {
         if (err) {
             console.error(`Error sending events to Pinpoint: ${err.message}`)
             // if (payload.retriesPerformedSoFar >= 15) {
