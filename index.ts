@@ -166,7 +166,7 @@ export const updateEndpoints = async (events: PluginEvent[], meta: PluginMeta<Pi
 
     global.pinpoint.updateEndpointsBatch(endpoints, (err: Error, data: UpdateEndpointsBatchResponse) => {
         if (err) {
-            console.error(`Error sending endpoints to Pinpoint: ${err.message}:${JSON.stringify(command)}`)
+            console.error(`Error sending endpoints to Pinpoint: ${err.message}:${JSON.stringify(endpoints)}`)
             // if (payload.retriesPerformedSoFar >= 15) {
             //     return
             // }
