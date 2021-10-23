@@ -153,12 +153,12 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
         endpoint = {
             Address: event.site_url,
             Attributes: {
-                screen_density: event.properties?.$screen_density,
-                screen_height: event.properties?.$screen_height,
-                screen_name: event.properties?.$screen_name,
-                screen_width: event.properties?.$screen_width,
-                viewport_height: event.properties?.$viewport_height,
-                viewport_width: event.properties?.$viewport_width,
+                screen_density: [event.properties?.$screen_density],
+                screen_height: [event.properties?.$screen_height],
+                screen_name: [event.properties?.$screen_name],
+                screen_width: [event.properties?.$screen_width],
+                viewport_height: [event.properties?.$viewport_height],
+                viewport_width: [event.properties?.$viewport_width],
             },
             ChannelType: event.properties?.$lib,
             Demographic: {
