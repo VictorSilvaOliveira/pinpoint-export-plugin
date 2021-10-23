@@ -2,6 +2,7 @@ import { createBuffer } from '@posthog/plugin-contrib'
 import { config, Pinpoint } from 'aws-sdk'
 import { Plugin, PluginMeta, PluginEvent } from '@posthog/plugin-scaffold'
 import { Event, PublicEndpoint, EventsBatch, PutEventsResponse } from 'aws-sdk/clients/pinpoint'
+import { randomUUID } from 'crypto'
 
 type PintpointPlugin = Plugin<{
     global: {
@@ -153,12 +154,12 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
         endpoint = {
             Address: event.site_url,
             Attributes: {
-                screen_density: [event.properties?.$screen_density],
-                screen_height: [event.properties?.$screen_height],
-                screen_name: [event.properties?.$screen_name],
-                screen_width: [event.properties?.$screen_width],
-                viewport_height: [event.properties?.$viewport_height],
-                viewport_width: [event.properties?.$viewport_width],
+                screen_density: [event.properties?.$screen_density?.toString() || ''],
+                screen_height: [event.properties?.$screen_height?.toString() || ''],
+                screen_name: [event.properties?.$screen_name?.toString() || ''],
+                screen_width: [event.properties?.$screen_width?.toString() || ''],
+                viewport_height: [event.properties?.$viewport_height?.toString() || ''],
+                viewport_width: [event.properties?.$viewport_width?.toString() || ''],
             },
             ChannelType: event.properties?.$lib,
             Demographic: {
@@ -191,8 +192,9 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
 
 export const getEvents = (events: PluginEvent[]): { [key: string]: Event } => {
     return events.reduce((pinpointEvents, event) => {
+        console.info(`Event ${JSON.stringify(event)}`)
         pinpointEvents = {
-            [event.distinct_id]: {
+            [randomUUID()]: {
                 AppPackageName: 'string;',
                 AppTitle: 'string;',
                 AppVersionCode: 'string;',
