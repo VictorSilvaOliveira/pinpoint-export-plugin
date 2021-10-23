@@ -169,7 +169,7 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
                 Model: event.properties?.$device_model || event.properties?.$os,
                 Platform: event.properties?.$os_name || event.properties?.$browser,
                 PlatformVersion:
-                    event.properties?.$os_version.toString() || event.properties?.$browser_version.toString(),
+                    event.properties?.$os_version?.toString() || event.properties?.$browser_version?.toString(),
                 Timezone: event.properties?.$geoip_time_zone,
             },
             EffectiveDate: event.timestamp,
@@ -211,7 +211,7 @@ export const getEvents = (events: PluginEvent[]): { [key: string]: Event } => {
             Metrics: {},
             SdkName: event.properties?.$lib,
             Timestamp: event.timestamp || new Date().getTime().toString(),
-            Session: {},
+            //Session: {},
             // Session: {
             //     Duration: 0,
             //     Id: 'string',
@@ -219,9 +219,9 @@ export const getEvents = (events: PluginEvent[]): { [key: string]: Event } => {
             //     StopTimestamp: ' string',
             // },
         }
-        if (event.properties?.$session_id) {
-            pinpointEvent.Session = { Id: event.properties?.$session_id }
-        }
+        // if (event.properties?.$session_id) {
+        //     pinpointEvent.Session = { Id: event.properties?.$session_id }
+        // }
         pinpointEvents = {
             [eventKey]: pinpointEvent,
         }
