@@ -112,6 +112,41 @@ export const onSnapshot: PintpointPlugin['onSnapshot'] = async (event, meta) => 
     }
 }
 
+export const updateEndpoints = async (events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
+    let { config, global } = meta
+    let endpoints = {
+        ApplicationId: config.applicationId,
+        EndpointBatchRequest: {
+            Item: events.filter((e) => e.properties?.$device_id).map((e) => getEndpoint(e)),
+        },
+    }
+    if (endpoints.EndpointBatchRequest.Item.length > 0) {
+        console.info("Update endpoint")
+        global.pinpoint.updateEndpointsBatch(endpoints, (err: Error, data: UpdateEndpointsBatchResponse) => {
+            if (err) {
+                console.error(`Error sending endpoints to Pinpoint: ${err.message}:${JSON.stringify(endpoints)}`)
+                // if (payload.retriesPerformedSoFar >= 15) {
+                //     return
+                // }
+                // const nextRetryMs = 2 ** payload.retriesPerformedSoFar * 3000
+                // console.log(`Enqueued batch ${payload.batchId} for retry in ${nextRetryMs}ms`)
+                // await jobs
+                //     .uploadBatchToS3({
+                //         ...payload,
+                //         retriesPerformedSoFar: payload.retriesPerformedSoFar + 1,
+                //     })
+                //     .runIn(nextRetryMs, 'milliseconds')
+            }
+            console.info(
+                `Uploaded ${events.length} endpoint${events.length === 1 ? '' : 's'} to application ${
+                    config.applicationId
+                }`
+            )
+            console.info(`Response: ${JSON.stringify(data)}`)
+        })
+    }
+}
+
 export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
     let { config, global } = meta
     const command = {
@@ -155,38 +190,6 @@ export const sendToPinpoint = async (events: PluginEvent[], meta: PluginMeta<Pin
     })
 }
 
-export const updateEndpoints = async (events: PluginEvent[], meta: PluginMeta<PintpointPlugin>) => {
-    let { config, global } = meta
-    let endpoints = {
-        ApplicationId: config.applicationId,
-        EndpointBatchRequest: {
-            Item: events.map((e) => getEndpoint(e)),
-        },
-    }
-
-    global.pinpoint.updateEndpointsBatch(endpoints, (err: Error, data: UpdateEndpointsBatchResponse) => {
-        if (err) {
-            console.error(`Error sending endpoints to Pinpoint: ${err.message}:${JSON.stringify(endpoints)}`)
-            // if (payload.retriesPerformedSoFar >= 15) {
-            //     return
-            // }
-            // const nextRetryMs = 2 ** payload.retriesPerformedSoFar * 3000
-            // console.log(`Enqueued batch ${payload.batchId} for retry in ${nextRetryMs}ms`)
-            // await jobs
-            //     .uploadBatchToS3({
-            //         ...payload,
-            //         retriesPerformedSoFar: payload.retriesPerformedSoFar + 1,
-            //     })
-            //     .runIn(nextRetryMs, 'milliseconds')
-        }
-        console.info(
-            `Uploaded ${events.length} endpoint${events.length === 1 ? '' : 's'} to application ${config.applicationId}`
-        )
-        console.info(`Response: ${JSON.stringify(data)}`)
-        sendToPinpoint(events, meta)
-    })
-}
-
 export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
     let endpoint = {}
     if (event.properties?.$device_id) {
@@ -208,7 +211,8 @@ export const getEndpoint = (event: PluginEvent): PublicEndpoint => {
                 Model: event.properties?.$device_model || event.properties?.$os,
                 Platform: event.properties?.$os_name || event.properties?.$browser,
                 PlatformVersion:
-                    event.properties?.$os_version?.toString() || event.properties?.$browser_version?.toString(),
+                    event.properties?.$os_version?.toString() || 
+                    event.properties?.$browser_version?.toString(),
                 Timezone: event.properties?.$geoip_time_zone,
             },
             EndpointStatus: 'ACTIVE',
