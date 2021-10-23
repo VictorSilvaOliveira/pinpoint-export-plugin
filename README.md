@@ -21,8 +21,15 @@ Export events to Amazon Pinpoint on ingestion. Archive your data, or simply free
     1. On the "Visual Editor" tab, click "Choose a service" and select "Pinpoint"
     1. Under "Actions" select
         1. "Write" -> "PutEvents"
-    1. Under "Resources" select "Specific" and click "object" -> "Add ARN"
-    1. Specify your bucket name and choose "any" for the object name, so the ARN looks something like this: `arn:aws:mobiletargeting:{Region}:{AccountId}:apps/{AppId}`
+    1. Specify your bucket name and choose "any" for the object name, so the ARN looks something like this: `arn:aws:mobiletargeting:{Region}:{AccountId}:apps/{AppId}/*`
+    1. On the "Visual Editor" tab, click "Choose a service" and select "Pinpoint"
+    1. Under "Actions" select
+        1. "Write" -> "UpdateEndpoint"
+    1. Specify your bucket name and choose "any" for the object name, so the ARN looks something like this: `arn:aws:mobiletargeting:{Region}:{AccountId}:apps/{AppId}/*`
+    1. On the "Visual Editor" tab, click "Choose a service" and select "Mobile Analytics"
+    1. Under "Actions" select
+        1. "Write" -> "PutEvents"
+    1. Under "Resources" select "Specific" and click "object" -> "All resources"
     1. Click "Next" until you end up on the "Review Policy" page
     1. Give it a name
 1. Open [IAM](https://console.aws.amazon.com/iam/home) and create a new user who uses this policy
